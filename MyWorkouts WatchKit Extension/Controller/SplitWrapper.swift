@@ -13,19 +13,24 @@ class SplitWrapper: ObservableObject {
         return SplitWrapper()
     }()
 
-    let factory: SplitFactory
+    private let factory: SplitFactory
+    
+    private let apiKey = "[front-end (client-side) Split API Key goes here]"
     
     @Published var isReady: Bool = false
     @Published var isReadyTimedOut: Bool = false
     
-    private let apiKey = "[front-end (client-side) Split API Key goes here]"
+    @Published private var userConsentValue: Bool?
 
     private init() {
         let key = Key(matchingKey: UUID().uuidString)
         
         let config = SplitClientConfig()
         config.logLevel = .verbose
-        config.sdkReadyTimeOut = 1000  // Set the time limit (in milliseconds) for Split definitions to be downloaded and enable the .sdkReadyTimedOut event.
+        config.sdkReadyTimeOut = 1000       // Set the time limit (in milliseconds) for Split definitions to be downloaded and enable the .sdkReadyTimedOut event.
+        config.userConsent = UserConsent.unknown
+        
+        userConsentValue = nil
         
         factory = DefaultSplitFactoryBuilder()
             .setApiKey(apiKey)
@@ -57,11 +62,36 @@ class SplitWrapper: ObservableObject {
             }
         }
         
+        print("initial user consent: \(factory.userConsent)")
+        
         // Tip: The following events can also be received:
         //    .sdkReadyFromCache - faster than .sdkReady
         //    .sdkUpdated        - when new split definitions are received
     }
-
+    
+    public var isUserConsentUnknown: Bool {
+        get {
+            return UserConsent.unknown == factory.userConsent
+        }
+    }
+    
+    public var isUserConsentGranted: Bool {
+        get {
+            return UserConsent.granted == factory.userConsent
+        }
+        set {
+            factory.setUserConsent(enabled: newValue)
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let _ = self else { return }
+                
+                self?.userConsentValue = newValue
+            }
+            
+            print("set user consent: \(newValue)")
+        }
+    }
+    
     // MARK: - Split SDK Function Wrappers
     
     /// Retrieves the treatment for the given feature flag (split), as defined in the Split Management
