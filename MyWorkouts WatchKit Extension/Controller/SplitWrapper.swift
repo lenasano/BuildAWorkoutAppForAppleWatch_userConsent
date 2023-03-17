@@ -39,7 +39,7 @@ class SplitWrapper: ObservableObject {
             .build()!
         
         factory.client.on(event: .sdkReadyTimedOut) { [weak self] in
-            guard let _ = self else { return }
+            guard let self = self else { return }
 
             // The .sdkReadyTimedOut event fires when
             // (1) the Split SDK has reached the time limit for downloading the
@@ -47,18 +47,18 @@ class SplitWrapper: ObservableObject {
             // (2) the Split definitions have also not been cached.
             
             DispatchQueue.main.async {
-                self?.isReadyTimedOut = true
+                self.isReadyTimedOut = true
             }
         }
         
         factory.client.on(event: .sdkReady) { [weak self] in
-            guard let _ = self else { return }
+            guard let self = self else { return }
             
             // Set a flag (a @Published var) when the Split definitions are
             // downloaded.
             
             DispatchQueue.main.async {
-                self?.isReady = true
+                self.isReady = true
             }
         }
         
@@ -82,10 +82,8 @@ class SplitWrapper: ObservableObject {
         set {
             factory.setUserConsent(enabled: newValue)
             
-            DispatchQueue.main.async { [weak self] in
-                guard let _ = self else { return }
-                
-                self?.userConsentValue = newValue
+            DispatchQueue.main.async {
+                self.userConsentValue = newValue
             }
             
             print("set user consent: \(newValue)")
